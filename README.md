@@ -1,47 +1,46 @@
-# Workshop Databricks — Data Engineering & Data Analytics
+# Workshop Databricks — Hands-on para Data Engineering e Data Analytics
 
 ## Visão Geral
 
-Este workshop demonstra o ciclo de vida completo de um dado de suporte de TI na plataforma Databricks, focando em **engenharia de dados** e **análise de dados**:
+Workshop hands-on onde cada participante executa as etapas junto com o facilitador, criando artefatos reais no workspace sobre dados de suporte de TI.
 
-| Seção | Tema | Tempo |
-|-------|------|-------|
-| 1 | Unity Catalog — Governança, Linhagem e Segurança | 15 min |
-| 2 | ETL Tradicional — Notebooks, Jobs e Arquitetura Medallion | 20 min |
-| 3 | ETL Declarativo — Lakeflow Spark Declarative Pipelines (SDP) | 20 min |
-| 4 | Lakeflow Designer — ETL Visual (No-code) | 15 min |
-| 5 | Metric View — Camada Semântica Centralizada | 10 min |
-| 6 | SQL Editor — Assistente AI e AI Functions | 15 min |
-| 7 | Genie — Perguntas em Linguagem Natural | 15 min |
-| 8 | AI/BI Dashboard | 15 min |
-| 9 | Genie Code — Assistente de IA no Workspace | 35 min |
+| Horário | Duração | Atividade |
+|---------|---------|----------|
+| 09:00–09:10 | 10 min. | Abertura |
+| 09:10–09:25 | 15 min. | Unity Catalog — Governança, Linhagem e Segurança |
+| 09:25–10:00 | 35 min. | Lakeflow Designer — ETL Visual (No-code) |
+| 10:00–10:20 | 20 min. | Metric View — Camada Semântica Centralizada |
+| 10:20–10:40 | 20 min. | SQL Editor — Assistente AI e AI Functions |
+| 10:40–10:50 | 10 min. | Coffee Break |
+| 10:50–11:50 | 60 min. | Genie Agents |
+| 11:50–12:00 | 10 min. | AI/BI Dashboard + Genie One |
 
 **Público-alvo:** Engenheiros de Dados e Analistas de Dados
 
-**Dados utilizados:** Tickets de suporte de TI (~2.300 tickets, atendentes, SLA e comentários)
+**Dados utilizados:** Tickets de suporte de TI (~2.300 tickets, atendentes, SLA e comentários) + 6 PDFs de políticas e procedimentos internos (para Knowledge Agent)
 
 ---
 
 ## Estrutura do Repositório
 
 ```
-Workshop - Plataforma DataEng & DataAnalysts/
-├── README.md                                ← Este arquivo
-├── 00_Config                                ← Configuração central (catalog/schema)
-├── 00_Setup_Workshop                         ← Script de setup (importa dados, cria recursos)
-├── Roteiro Workshop DataEng e DataAnalysts   ← Guia completo da demo (siga este notebook)
-├── ETL Tradicional/                         ← Notebooks de ETL código (Seção 2)
-│   ├── ETL Silver - IT Support              ← Bronze → Silver (joins + campos calculados)
-│   └── ETL Gold - IT Support                ← Silver → Gold (agregações para dashboards)
-├── data/                                    ← CSVs com dados reais (versionados no git)
-│   ├── tb_tickets.csv                       ← 2.331 tickets de suporte
-│   ├── tb_agents.csv                        ← 2.330 registros de atendentes
-│   ├── tb_sla.csv                           ← 2.330 registros de SLA
-│   └── tb_tickets_comments.csv              ← 142 comentários de tickets
-└── SDP Pipeline/
-    └── Pipeline SDP - IT Support (Silver e Gold)/
-        └── transformations/
-            └── SDP ETL - IT Support (Silver e Gold)  ← Pipeline declarativo (Seção 3)
+Workshop-Plataforma-DataEng-DataAnalysts/
+├── README.md                              ← Este arquivo
+├── 00_Config                              ← Configuração central (catalog/schema)
+├── 00_Setup_Workshop                      ← Script de setup (importa CSVs como tabelas bronze)
+├── Workshop DataEng e DataAnalysts        ← Roteiro hands-on (siga este notebook)
+└── data/                                  ← Dados do workshop (versionados no git)
+    ├── tb_tickets.csv                     ← 2.331 tickets de suporte
+    ├── tb_agents.csv                      ← 2.330 registros de atendentes
+    ├── tb_sla.csv                         ← 2.330 registros de SLA
+    ├── tb_tickets_comments.csv            ← 142 comentários de tickets
+    └── pdf/                               ← Políticas e procedimentos internos (para Knowledge Agent)
+        ├── 01_SLA_e_Niveis_de_Servico.pdf
+        ├── 02_Processos_de_Escalacao.pdf
+        ├── 03_Seguranca_e_Controle_de_Acesso.pdf
+        ├── 04_Qualidade_e_Padroes_de_Atendimento.pdf
+        ├── 05_Gestao_de_Mudancas_e_CMDB.pdf
+        └── 06_Continuidade_de_Servico_e_DR.pdf
 ```
 
 ---
@@ -49,9 +48,10 @@ Workshop - Plataforma DataEng & DataAnalysts/
 ## Pré-requisitos
 
 - Workspace Databricks com Unity Catalog habilitado
-- Permissão de **CREATE CATALOG** (ou acesso a um catalog existente com permissão de criar schemas e tabelas)
-- Compute Serverless habilitado (ou cluster com acesso ao Unity Catalog)
-- AI Functions habilitadas (para as seções 6, 7 e 9)
+- Acesso a um catalog com permissão de criar schemas e tabelas
+- Compute Serverless habilitado
+- AI Functions habilitadas (para SQL Editor e Genie Agents)
+- Feature Preview "Analyze Files in Volumes with Genie Agents" habilitada (para a seção 5.2)
 
 ---
 
@@ -74,191 +74,86 @@ Workshop - Plataforma DataEng & DataAnalysts/
 ## Passo 2 — Configurar Catalog e Schema
 
 1. Abra o notebook **`00_Config`**
-2. Altere os valores padrão dos widgets conforme seu ambiente:
-   - `catalog`: nome do catalog (ex: `meu_catalog`)
-   - `schema`: nome do schema (ex: `it_support`)
-3. **Não execute ainda** — o setup fará isso automaticamente
+2. Na primeira célula, altere as variáveis:
+   - `CONFIG_CATALOG`: nome do catalog (ex: `meu_catalog`)
+   - `CONFIG_SCHEMA`: nome do schema (ex: `rcosin`)
+3. Execute a célula para validar a configuração
 
-> ⚠️ O catalog e schema escolhidos serão usados por **todos** os notebooks automaticamente via `%run ./00_Config`.
+> Todos os notebooks herdam essas variáveis automaticamente via `%run ./00_Config`. As células de prompt no roteiro geram nomes totalmente qualificados a partir dessas variáveis — não há hardcodes a ajustar manualmente.
 
 ---
 
 ## Passo 3 — Executar o Setup
 
 1. Abra o notebook **`00_Setup_Workshop`**
-2. Execute **todas as células em ordem** (Run All ou uma por uma)
+2. Execute todas as células em ordem
 3. O setup irá:
-   - Criar o catalog e schema (se não existirem)
-   - Importar os 4 CSVs como tabelas Delta no Unity Catalog:
+   - Usar o catalog e schema definidos no `00_Config`
+   - Importar os 4 CSVs como tabelas Delta (bronze) no Unity Catalog:
      - `tb_tickets` (2.331 registros)
      - `tb_agents` (2.330 registros)
      - `tb_sla` (2.330 registros)
      - `tb_tickets_comments` (142 registros)
-   - Criar uma Skill de padronização para o Genie Code
-4. Valide que a célula de validação mostra as 4 tabelas com as contagens corretas
-
-> ⚠️ A **Metric View** no setup só deve ser executada **após** rodar o ETL Silver (Passo 4), pois depende da tabela `silver_tickets_full`. Pule essa célula por enquanto.
+4. Confirme que a célula de validação exibe as 4 tabelas com as contagens corretas
 
 ---
 
-## Passo 4 — Criar os Recursos Necessários
+## Passo 4 — Seguir o Roteiro Hands-on
 
-Antes de iniciar a demo, crie os seguintes recursos:
-
-### 4.1 Executar os ETLs (tabelas Silver e Gold)
-
-1. Abra **`ETL Tradicional/ETL Silver - IT Support`** e execute todas as células
-   - Cria: `silver_tickets_full`, `silver_comments_enriched`
-2. Abra **`ETL Tradicional/ETL Gold - IT Support`** e execute todas as células
-   - Cria: `gold_support_kpis`, `gold_tickets_by_country`, `gold_agent_performance`, `gold_sla_compliance`
-3. Volte ao **`00_Setup_Workshop`** e execute a célula da **Metric View** (que foi pulada no Passo 3)
-   - Cria: `mv_support_metrics`
-
-### 4.2 Criar o Job de Orquestração (Seção 2 do Roteiro)
-
-1. Vá em **Lakeflow Jobs** > **Create Job**
-2. Configure:
-   - **Nome:** `ETL IT Support - Silver e Gold`
-   - **Task 1:** `etl_silver` → Notebook `ETL Tradicional/ETL Silver - IT Support`
-   - **Task 2:** `etl_gold` → Notebook `ETL Tradicional/ETL Gold - IT Support` → **Depends on:** `etl_silver`
-   - **Compute:** Serverless
-3. Opcionalmente configure agendamento e alertas (para demonstrar na Seção 2)
-
-### 4.3 Criar o Pipeline SDP (Seção 3 do Roteiro)
-
-1. Vá em **Data Engineering** > **ETL Pipelines** > **Create Pipeline**
-2. Configure:
-   - **Nome:** `SDP - IT Support (Silver e Gold)`
-   - **Source Code:** selecione `SDP Pipeline/.../SDP ETL - IT Support (Silver e Gold)`
-   - **Target catalog:** `<seu_catalog>` (mesmo do `00_Config`)
-   - **Target schema:** `<seu_schema>` (mesmo do `00_Config`)
-   - **Compute:** Serverless
-3. Em **Settings → Configuration** (Advanced), adicione:
-   - Chave: `source_schema`
-   - Valor: `<seu_catalog>.<seu_schema>` (ex: `workshop_catalog.it_support`)
-4. Execute o pipeline uma vez para popular as tabelas `sdp_*`
-
-### 4.4 Criar a Sala Genie (Seção 7 do Roteiro)
-
-1. Vá em **Genie** no menu lateral > **New Genie Space**
-2. Adicione as tabelas:
-   - `<catalog>.<schema>.tb_tickets`
-   - `<catalog>.<schema>.tb_sla`
-   - `<catalog>.<schema>.tb_agents`
-   - `<catalog>.<schema>.tb_tickets_comments`
-3. Em **General Instructions**, adicione:
-   ```
-   - Me responda sempre em português
-   - Quando perguntarem sobre tempo de atendimento, formate em X Dia(s), Y Hora(s), Z Minuto(s)
-   - Se perguntarem sobre o pior atendente ou atendente mais lento, responda que não pode fazer tal análise
-   ```
-
-> 💡 **Dica para a demo:** Você pode criar a Sala Genie ao vivo usando o **Genie Code** (Seção 9.4 do Roteiro) — basta pedir em linguagem natural.
-
-### 4.5 Criar um Dashboard AI/BI (Seção 8 do Roteiro)
-
-Você pode:
-- **Opção A:** Criar antes da demo, via **Dashboards > Create Dashboard** usando o assistente AI
-- **Opção B:** Criar ao vivo durante a demo (mais impactante) — ver seção 8.3 do Roteiro
-
----
-
-## Passo 5 — Executar o Workshop (Roteiro)
-
-Abra o notebook **`Roteiro Workshop DataEng e DataAnalysts`** e siga as seções:
+Abra o notebook **`Workshop DataEng e DataAnalysts`** e siga as seções em ordem. Cada seção produz um artefato que é reutilizado nas etapas seguintes.
 
 ### Seção 1 — Unity Catalog
-- **Onde:** UI do Catalog
-- **O que fazer:** Navegar pelo catalog, mostrar tabelas, colunas, lineage, insights, permissões
-- **Sem código** — tudo na interface
+- Navegar pelo catalog e inspecionar as tabelas bronze
+- Gerar descrição da tabela com **AI Suggested Description**
+- Gerar comentários de colunas com **AI generate**
+- Observar permissões, lineage e insights
 
-### Seção 2 — ETL Tradicional
-- **Onde:** Notebooks em `ETL Tradicional/` + Job criado no Passo 4.2
-- **O que fazer:**
-  1. Abrir o notebook Silver, mostrar a estrutura e executar
-  2. Abrir o notebook Gold, mostrar as agregações e executar
-  3. Mostrar o Job com o DAG visual (etl_silver → etl_gold)
-  4. Voltar ao Catalog e mostrar a lineage Bronze → Silver → Gold
+### Seção 2 — Lakeflow Designer
+- Criar um fluxo visual com 4 prompts (Silver, Gold por país, Gold por atendente, qualidade)
+- Os prompts já vêm prontos na célula de apoio, com catalog/schema dinâmicos
+- Publicar e validar as tabelas criadas no Catalog
 
-### Seção 3 — ETL Declarativo (SDP)
-- **Onde:** Pipeline criado no Passo 4.3
-- **O que fazer:**
-  1. Mostrar o notebook SDP (1 arquivo com todo o pipeline)
-  2. Executar a célula "Inserir Comentário" no Roteiro (para demo incremental)
-  3. Re-executar o pipeline e mostrar que apenas o novo registro é processado
-  4. Mostrar o DAG visual, métricas de qualidade e expectations
-  5. Comparar com o ETL tradicional (tabela comparativa no Roteiro)
+### Seção 3 — Metric View
+- Criar a Metric View `mv_support_metrics` via Genie Code usando o prompt da célula de apoio
+- Validar com prompts de consulta (1 dimensão + 1 medida → 3 dimensões + 3 medidas)
 
-### Seção 4 — Lakeflow Designer
-- **Onde:** Data Engineering > Visual Data Prep
-- **O que fazer:**
-  1. Criar um novo fluxo visual
-  2. Colar os 2 prompts do Roteiro (Silver e Gold) no assistente
-  3. Mostrar o preview e o DAG gerado
-  4. Executar e validar no SQL Editor
+### Seção 4 — SQL Editor
+- Executar consultas básicas e testar o assistente AI
+- Executar AI Functions: `ai_analyze_sentiment`, `ai_query`
+- Queries prontas na célula de apoio, com catalog/schema dinâmicos
 
-### Seção 5 — Metric View
-- **Onde:** Genie Code + SQL Editor
-- **O que fazer:**
-  1. Explicar o conceito (Roteiro tem tabela comparativa VIEW vs METRIC VIEW)
-  2. Usar o **prompt do Genie Code** (seção 5.5) para criar a Metric View ao vivo
-  3. Mostrar no Catalog as dimensões e medidas criadas
-  4. Executar queries de exemplo no SQL Editor
+### Seção 5 — Genie Agents
+- **5.0** Criar a sala Genie manualmente com a Metric View + perguntas de validação
+- **5.1** Melhorar a sala com o Genie Code (prompt na célula de apoio)
+- **5.2** Adicionar um Volume como fonte (Knowledge Agent / RAG em Beta)
 
-### Seção 6 — SQL Editor
-- **Onde:** SQL Editor
-- **O que fazer:**
-  1. Executar queries básicas nas tabelas
-  2. Mostrar o assistente AI gerando queries por linguagem natural
-  3. Demonstrar AI Functions: `ai_analyze_sentiment`, `ai_classify`, `ai_query`
+### Seção 6 — AI/BI Dashboard
+- Criar um dashboard usando o prompt da célula de apoio
+- Associar a sala Genie ao dashboard (Settings > Enable Genie > Link existing agent)
+- Testar a análise conversacional diretamente no dashboard
 
-> ⚠️ **Nota:** As queries de exemplo no Roteiro usam `cosin_aws_serverless_catalog.it_support`. Substitua pelo catalog/schema do seu ambiente.
-
-### Seção 7 — Genie
-- **Onde:** Sala Genie criada no Passo 4.4
-- **O que fazer:**
-  1. Fazer as perguntas listadas no Roteiro (seção 7.4)
-  2. Mostrar que recusa perguntas sobre "pior atendente" (conforme instrução)
-  3. Mostrar o Research Agent com a pergunta da seção 7.5
-
-### Seção 8 — AI/BI Dashboard
-- **Onde:** Dashboards AI/BI
-- **O que fazer:**
-  1. Se já criou o dashboard (Passo 4.5A), editá-lo ao vivo com o assistente
-  2. Se não criou, criar do zero usando os prompts da seção 8.3
-  3. Pedir ao assistente para adicionar/modificar visualizações
-
-### Seção 9 — Genie Code
-- **Onde:** Sidebar do Genie Code (disponível em qualquer tela)
-- **O que fazer:**
-  1. Gerar ETL assistido em notebooks (seção 9.3)
-  2. Criar uma Sala Genie via linguagem natural (seção 9.4)
-  3. Mostrar Skills de padronização (seção 9.5)
-  4. Criar um Dashboard via Genie Code (seção 9.6)
-  5. Demonstrar migração de Dashboards e ETLs legados (seções 9.7 e 9.8)
+### Seção 7 — Genie One
+- Conhecer a interface simplificada para usuários consumidores
+- Salas, dashboards, agente geral, tarefas agendadas e aba Discovery
 
 ---
 
-## Checklist Pré-Demo
+## Checklist Pré-Workshop
 
 - [ ] Repo clonado no workspace
-- [ ] `00_Config` configurado com catalog/schema do ambiente
-- [ ] `00_Setup_Workshop` executado com sucesso (4 tabelas criadas)
-- [ ] `ETL Tradicional/ETL Silver` executado (2 tabelas Silver criadas)
-- [ ] `ETL Tradicional/ETL Gold` executado (4 tabelas Gold criadas)
-- [ ] Metric View criada (célula no Setup executada após Silver)
-- [ ] Job de orquestração criado (ETL Silver → Gold)
-- [ ] Pipeline SDP criado e executado ao menos uma vez
-- [ ] Sala Genie criada (ou preparada para criar ao vivo)
-- [ ] Dashboard AI/BI criado (ou preparado para criar ao vivo)
-- [ ] Queries do SQL Editor testadas com o catalog/schema correto
+- [ ] `00_Config` configurado com catalog e schema do ambiente
+- [ ] `00_Setup_Workshop` executado com sucesso (4 tabelas bronze criadas)
+- [ ] Compute Serverless disponível para os participantes
+- [ ] AI Functions habilitadas no workspace
+- [ ] Feature Preview "Analyze Files in Volumes with Genie Agents" habilitada (para seção 5.2)
+- [ ] Volume com documentos de política de suporte criado no schema (para seção 5.2)
 
 ---
 
 ## Notas Importantes
 
-- **Catalog/Schema configurável:** Todos os notebooks de ETL herdam automaticamente via `%run ./00_Config` (ou `%run ../00_Config` para os dentro de subpastas). O pipeline SDP usa a variável `source_schema` configurada no pipeline settings. As queries de exemplo no Roteiro (seções 6, 7, 8, 9) usam nomes de exemplo — ajuste para o catalog/schema do seu ambiente.
-- **Dados reais:** Os CSVs na pasta `data/` contêm dados reais exportados, não sintéticos. São versionados no git e importados pelo setup.
-- **Convenção de nomenclatura:** Tabelas Bronze usam prefixo `tb_` (tb_tickets, tb_agents, tb_sla, tb_tickets_comments). Silver usam `silver_*`, Gold usam `gold_*`, SDP usam `sdp_*`.
-- **AI Functions:** Requerem um endpoint de Foundation Model habilitado no workspace. Verifique antes da demo.
-- **Lakeflow Designer:** Requer a feature preview habilitada no workspace (se aplicável).
+- **Catalog/Schema configurável:** todas as células de prompt geram nomes totalmente qualificados a partir das variáveis `CATALOG` e `SCHEMA` do `00_Config`. Não há referências fixas a ajustar manualmente.
+- **Dados reais:** os CSVs na pasta `data/` contêm dados exportados, não sintéticos. São versionados no git e importados pelo setup.
+- **Convenção de nomenclatura:** tabelas bronze usam prefixo `tb_`; tabelas criadas no Designer usam prefixo `designer_`.
+- **AI Functions:** requerem um endpoint de Foundation Model habilitado no workspace.
+- **Lakeflow Designer:** pode requerer feature preview habilitada no workspace.
